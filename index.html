@@ -2,35 +2,100 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Chat ALTIS</title>
-
-  <!-- Carica ChatKit dal CDN OpenAI -->
-  <script src="https://cdn.platform.openai.com/deployments/chatkit/chatkit.js" async></script>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Chat ALTIS — Debug</title>
 
   <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      font-family: system-ui, sans-serif;
-      background: #f6f6f6;
-    }
-    chat-kit {
-      display: block;
-      width: 100%;
-      height: 100vh;
-      max-height: 900px;
-      border-radius: 12px;
-      overflow: hidden;
-    }
+    html,body{height:100%;margin:0;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;background:#f6f6f6}
+    #wrap{max-width:980px;margin:24px auto;padding:16px}
+    #box{height:720px;border:1px solid #ddd;border-radius:12px;overflow:hidden;background:#fff}
+    #log{white-space:pre-wrap;font-size:13px;line-height:1.35;background:#111;color:#eee;padding:12px;border-radius:8px;margin-top:12px}
+    .ok{color:#22aa55} .err{color:#ff4d4f} .muted{color:#aaa}
   </style>
+
+  <!-- ChatKit script dal CDN OpenAI -->
+  <script src="https://cdn.platform.openai.com/deployments/chatkit/chatkit.js" defer></script>
 </head>
 <body>
-  <!-- ChatKit -->
-  <chat-kit
-    publishable-key="domain_pk_690363e10d7081908ac6290bbe62861d0a984ff2db6bff75"
-    workflow-id="wf_69022906d2f081909a0590fab5c8e20603d06c5768c94bdc"
-    title="Parla con il nostro agente">
-  </chat-kit>
+  <div id="wrap">
+    <h1 style="margin:0 0 12px">Chat ALTIS — Debug</h1>
+    <div id="box"></div>
+    <div id="log">Init…</div>
+  </div>
+
+  <script>
+    (function(){
+      const box = document.getElementById('box');
+      const logEl = document.getElementById('log');
+      const log = (m, cls) => {
+        const time = new Date().toISOString().split('T')[1].split('.')[0];
+        logEl.innerHTML += "\n"+ (cls ? `<span class="${cls}">[${time}] ${m}</span>` : `[${time}] ${m}`);
+        logEl.scrollTop = logEl.scrollHeight;
+        console.log("[CK]", m);
+      };
+
+      const PUBLISHABLE_KEY = "domain_pk_690363e10d7081908ac6290bbe62861d0a984ff2db6bff75";
+      const WORKFLOW_ID     = "wf_69022906d2f081909a0590fab5c8e20603d06c5768c94bdc";
+
+      async function waitForLib(ms=10000){
+        const t0 = Date.now();
+        while(Date.now() - t0 < ms){
+          if (window.ChatKit) return true;
+          await new Promise(r=>setTimeout(r,150));
+        }
+        return false;
+      }
+
+      async function main(){
+        try{
+          log("Attendo libreria…");
+          const ok = await waitForLib(12000);
+          if(!ok){ log("Libreria ChatKit NON caricata (rete/adblock?)", "err"); return; }
+          log("Libreria caricata ✓", "ok");
+
+          // Check origin che userai in allowlist
+          const origin = location.origin;
+          log("Origin corrente: " + origin);
+
+          // Prova a montare con publishable key
+          log("Monto widget…");
+          const unmount = await window.ChatKit.mount({
+            element: box,
+            publishableKey: PUBLISHABLE_KEY,
+            workflowId: WORKFLOW_ID,
+            title: "Parla con il nostro agente",
+          });
+
+          log("Mount chiamato. Se resta bianco, vedi errori sotto.", "muted");
+
+          // Watchdog: se l'UI non ha altezza dopo 2s, segnala
+          setTimeout(()=>{
+            const h = box.getBoundingClientRect().height;
+            if (!h) log("Container con altezza 0 (CSS). Ma di solito qui è 720px, quindi ok.", "muted");
+          }, 2000);
+
+        }catch(e){
+          console.error(e);
+          // stampa messaggio “parlante”
+          let msg = (e && e.message) ? e.message : String(e);
+          log("ERRORE: " + msg, "err");
+
+          // Alcuni errori tipici e cosa fare
+          if (/origin/i.test(msg) && /not allowed|disallowed/.test(msg)) {
+            log("→ Aggiungi in ChatKit › Deployment › Domain allowlist: " + location.origin, "err");
+          } else if (/workflow/i.test(msg) && /not.*found|invalid/.test(msg)) {
+            log("→ Controlla il WORKFLOW_ID. Deve essere quello del deployment attivo.", "err");
+          } else if (/Content unavailable|Resource was not cached/i.test(msg)) {
+            log("→ Apri l'Agent/Workflow e pubblica/attiva il deployment ChatKit.", "err");
+          } else {
+            log("→ Apri DevTools › Console per stack completo.", "muted");
+          }
+        }
+      }
+
+      if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", main);
+      else main();
+    })();
+  </script>
 </body>
 </html>
