@@ -1,10 +1,18 @@
-<!doctype html>
-<html lang="it">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Chat ALTIS — Debug</title>
 
+  <!-- ✅ META CSP PERMISSIVA (vale solo se NON c'è già un header CSP) -->
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self';
+                 script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.platform.openai.com https://cdn.openai.com;
+                 connect-src https://api.openai.com;
+                 img-src 'self' data: https:;
+                 style-src 'self' 'unsafe-inline';
+                 font-src 'self' data: https:">
+
+  <script src="./chatkit.js" defer></script> <!-- usa la copia locale -->
+  <title>Chat ALTIS — Debug</title>
   <style>
     html,body{height:100%;margin:0;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;background:#f6f6f6}
     #wrap{max-width:980px;margin:24px auto;padding:16px}
@@ -13,8 +21,6 @@
     .ok{color:#22aa55} .err{color:#ff4d4f} .muted{color:#aaa}
   </style>
 
-  <!-- usa la copia locale, NON il CDN -->
-<script src="./chatkit.js" defer></script>
 </head>
 <body>
   <div id="wrap">
